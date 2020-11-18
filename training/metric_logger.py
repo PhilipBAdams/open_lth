@@ -15,6 +15,9 @@ class MetricLogger:
     def add(self, name: str, step: Step, value: float):
         self.log[(name, step.iteration)] = value
 
+    def add_line(self, name: str, step: Step, value):
+        self.log[(name, step.iteration)] = value
+
     def __str__(self):
         return '\n'.join(['{},{},{}'.format(k[0], k[1], v) for k, v in self.log.items()])
 
@@ -39,6 +42,7 @@ class MetricLogger:
         if not get_platform().exists(location):
             get_platform().makedirs(location)
         with get_platform().open(paths.logger(location), 'w') as fp:
+            fp.write("phase,iteration,loss,accuracy,elapsed_time\n")
             fp.write(str(self))
 
     def get_data(self, desired_name):
