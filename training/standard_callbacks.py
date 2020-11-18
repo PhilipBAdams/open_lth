@@ -42,6 +42,7 @@ def create_eval_callback(eval_name: str, loader: DataLoader, verbose=False):
     time_of_last_call = None
 
     def eval_callback(output_location, step, model, optimizer, logger):
+        start_time = time.time()      
         example_count = torch.tensor(0.0).to(get_platform().torch_device)
         total_loss = torch.tensor(0.0).to(get_platform().torch_device)
         total_correct = torch.tensor(0.0).to(get_platform().torch_device)
@@ -71,16 +72,22 @@ def create_eval_callback(eval_name: str, loader: DataLoader, verbose=False):
         total_loss = total_loss.cpu().item()
         total_correct = total_correct.cpu().item()
         example_count = example_count.cpu().item()
+        elapsed = time.time() - start_time
 
         if get_platform().is_primary_process:
-            logger.add('{}_loss'.format(eval_name), step, total_loss / example_count)
-            logger.add('{}_accuracy'.format(eval_name), step, total_correct / example_count)
-            logger.add('{}_examples'.format(eval_name), step, example_count)
+            logger.add_line(eval_name, step,
+                           '{0},{1},{2}'.format(total_loss / example_count,
+                                                total_correct / example_count,
+                                                elapsed))
+
+            # logger.add('{}_loss'.format(eval_name), step, total_loss / example_count)
+            # logger.add('{}_accuracy'.format(eval_name), step, total_correct / example_count)
+            # logger.add('{}_examples'.format(eval_name), step, example_count)
 
             if verbose:
                 nonlocal time_of_last_call
-                elapsed = 0 if time_of_last_call is None else time.time() - time_of_last_call
-                print('{}\tep {:03d}\tit {:03d}\tloss {:.3f}\tacc {:.2f}%\tex {:d}\ttime {:.2f}s'.format(
+                # elapsed = 0 if time_of_last_call is None else time.time() - time_of_last_call
+                print('{}\tep {:03d}\tit {:03d}\tloss {:.3f}\tacc {:.2f}%\tex {:d}\tvalidation_time {:.2f}s'.format(
                     eval_name, step.ep, step.it, total_loss/example_count, 100 * total_correct/example_count,
                     int(example_count), elapsed))
                 time_of_last_call = time.time()
